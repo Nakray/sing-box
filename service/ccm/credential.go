@@ -21,6 +21,7 @@ const (
 	claudeAPIBaseURL        = "https://api.anthropic.com"
 	tokenRefreshBufferMs    = 60000
 	anthropicBetaOAuthValue = "oauth-2025-04-20"
+	maxCredentialFileSize   = 64 << 10
 )
 
 func getRealUser() (*user.User, error) {
@@ -45,6 +46,13 @@ func getDefaultCredentialsPath() (string, error) {
 }
 
 func readCredentialsFromFile(ctx context.Context, path string) (*oauthCredentials, error) {
+	fileStat, err := filemanager.Stat(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	if fileStat.Size() > maxCredentialFileSize {
+		return nil, E.New("credentials file too large: ", fileStat.Size(), " bytes (limit ", maxCredentialFileSize, ")")
+	}
 	data, err := filemanager.ReadFile(ctx, path)
 	if err != nil {
 		return nil, err
